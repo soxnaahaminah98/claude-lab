@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+functions/lib/
+*.tsbuildinfo
+
+# Vite
+.vite/
+vite.config.*.timestamp-*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Test / coverage
+coverage/
+
+# Firebase
+.firebase/
+.runtimeconfig.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+functions/.secret.local
+*serviceAccount*.json
+
+# Private data (real inventory exports with staff / serial numbers)
+data/private/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secret files for the Functions emulator (any directory)
+*.secret.local

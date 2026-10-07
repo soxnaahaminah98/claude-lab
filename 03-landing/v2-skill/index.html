@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>IT Parc — Le parc informatique, suivi de bout en bout</title>
+<style>
+
+  :root {
+    color-scheme: dark;
+    --bg: #0a0e13;
+    --s1: #10161d;
+    --s2: #161e28;
+    --s3: #1d2734;
+    --line: #273445;
+    --line-hi: #3a4c63;
+    --text: #e7edf4;
+    --muted: #98a6b8;
+    --accent: #2ee6d0;
+    --accent-ink: #03211d;
+    --accent-dim: rgba(46, 230, 208, .12);
+    --glow: 0 0 0 1px rgba(46, 230, 208, .55), 0 0 18px rgba(46, 230, 208, .18);
+    --ok: #3ddc84;
+    --warn: #f5b942;
+    --bad: #ff6b6b;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --r: 10px;
+    --t: 180ms ease;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 1rem; line-height: 1.55;
+    position: relative; min-height: 100vh;
+  }
+  body::before { /* faint grid, fades out downward */
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(120, 150, 190, .07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 150, 190, .07) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: linear-gradient(#000, transparent 75%);
+    mask-image: linear-gradient(#000, transparent 75%);
+  }
+  [hidden] { display: none !important; }
+  .wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  h1, h2, h3 { font-family: var(--sans); font-weight: 650; line-height: 1.15; margin: 0; letter-spacing: -.015em; }
+  p { margin: 0; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; box-shadow: var(--glow); border-radius: 6px; }
+
+  /* Top bar */
+  .bar { border-bottom: 1px solid var(--line); background: rgba(16, 22, 29, .92); position: sticky; top: 0; z-index: 5; }
+  .bar .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 24px; padding-top: 10px; padding-bottom: 10px; }
+  .brand { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .brand strong { font-family: var(--mono); font-size: 1.1rem; font-weight: 700; letter-spacing: 0; }
+  .pulse { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; margin-right: -4px; }
+  .pulse::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--ok); animation: ping 2.4s ease-out infinite; }
+  @keyframes ping { 0% { transform: scale(1); opacity: .7; } 80%, 100% { transform: scale(3.2); opacity: 0; } }
+  .brand span:not(.pulse) { color: var(--muted); font-size: .88rem; padding-left: 12px; border-left: 1px solid var(--line); }
+  .bar nav { display: flex; gap: 2px 6px; flex-wrap: wrap; }
+  .bar nav a {
+    color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 6px;
+    font-family: var(--mono); font-size: .85rem; transition: color var(--t), background var(--t);
+  }
+  .bar nav a:hover { color: var(--text); background: var(--s3); }
+
+  /* Hero = the assistant */
+  .hero { padding: 36px 0 56px; }
+  .hero .wrap { display: grid; gap: 28px; }
+  .hero h1 { font-size: clamp(1.9rem, 6vw, 3rem); max-width: 16ch; }
+  .hero-copy p { margin-top: 14px; color: var(--muted); max-width: 40ch; font-size: 1.05rem; }
+  .hero-copy p.small { font-size: .88rem; margin-top: 12px; font-family: var(--mono); }
+
+  /* Console panel */
+  .panel {
+    position: relative; background: var(--s1); border: 1px solid var(--line); border-radius: 12px;
+    padding: 58px 16px 20px; transition: border-color var(--t), box-shadow var(--t);
+  }
+  .panel:focus-within, .panel:hover { border-color: var(--line-hi); }
+  .panel::before { /* title bar */
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 38px;
+    border-bottom: 1px solid var(--line); background: var(--s2); border-radius: 11px 11px 0 0;
+  }
+  .panel::after { /* window dots */
+    content: ""; position: absolute; top: 15px; left: 16px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--line-hi); box-shadow: 14px 0 0 var(--line-hi), 28px 0 0 var(--line-hi);
+  }
+  .steps { display: flex; list-style: none; margin: 0 0 24px; padding: 0; }
+  .steps li { flex: 1; position: relative; font-size: .82rem; color: var(--muted); padding-top: 32px; padding-right: 8px; transition: color var(--t); }
+  .steps li::before { /* node */
+    content: attr(data-n); position: absolute; top: 0; left: 0; width: 24px; height: 24px; border-radius: 6px;
+    border: 1px solid var(--line-hi); background: var(--s2); font-family: var(--mono); font-size: .78rem; font-weight: 700;
+    display: grid; place-items: center; z-index: 1; color: var(--muted);
+    transition: background var(--t), border-color var(--t), color var(--t), box-shadow var(--t);
+  }
+  .steps li::after { /* track that fills */
+    content: ""; position: absolute; top: 11px; left: 30px; right: 6px; height: 2px; border-radius: 2px;
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat left / 0 100% var(--line);
+    transition: background-size 400ms ease;
+  }
+  .steps li:last-child::after { display: none; }
+  .steps li.active { color: var(--text); font-weight: 600; }
+  .steps li.active::before { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); box-shadow: var(--glow); }
+  .steps li.done { color: var(--text); }
+  .steps li.done::before { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); content: "\2713"; }
+  .steps li.done::after { background-size: 100% 100%; }
+
+  fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+  legend { font-size: 1.25rem; font-weight: 650; padding: 0; margin-bottom: 14px; line-height: 1.25; }
+  legend::before { content: "\203A\00a0"; color: var(--accent); font-family: var(--mono); font-weight: 700; }
+  legend:focus { outline: none; }
+  .choices { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .choice {
+    font: inherit; text-align: left; cursor: pointer; min-height: 54px; padding: 12px 14px;
+    background: var(--s2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    transition: border-color var(--t), background var(--t), box-shadow var(--t);
+  }
+  .choice::after {
+    content: ""; flex: none; width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--line-hi); background: var(--bg);
+    transition: background var(--t), border-color var(--t);
+  }
+  .choice:hover { border-color: var(--accent); box-shadow: 0 0 14px rgba(46, 230, 208, .12); }
+  .choice[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-dim); font-weight: 600; box-shadow: var(--glow); }
+  .choice[aria-pressed="true"]::after { content: "\2713"; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-size: .75rem; font-weight: 800; display: grid; place-items: center; }
+
+  .field { margin-bottom: 14px; }
+  label { display: block; font-weight: 600; margin-bottom: 5px; font-size: .9rem; color: var(--text); }
+  input, select, textarea {
+    width: 100%; font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line-hi); border-radius: 8px; padding: 10px 12px; min-height: 46px;
+    transition: border-color var(--t), box-shadow var(--t);
+  }
+  input:hover, select:hover, textarea:hover { border-color: var(--muted); }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--accent); outline: none; box-shadow: var(--glow); }
+  textarea { min-height: 130px; resize: vertical; }
+  .field.invalid input, .field.invalid select, .field.invalid textarea { border-color: var(--bad); }
+  .error { color: var(--bad); font-size: .88rem; min-height: 1.3em; margin-top: 4px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .btn {
+    font: inherit; font-weight: 650; cursor: pointer; min-height: 46px; padding: 10px 20px; border-radius: 8px;
+    border: 1px solid var(--accent); text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent); color: var(--accent-ink);
+    transition: box-shadow var(--t), background var(--t), border-color var(--t), transform var(--t);
+  }
+  .btn:hover { box-shadow: 0 0 20px rgba(46, 230, 208, .35); background: #5cf0de; border-color: #5cf0de; }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: transparent; color: var(--text); border-color: var(--line-hi); }
+  .btn.ghost:hover { border-color: var(--text); background: var(--s3); box-shadow: none; }
+
+  /* Result */
+  .result { outline: none; animation: rise 320ms ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .result h3 { font-size: 1.25rem; margin-bottom: 12px; }
+  .result h3::before { content: "\203A\00a0"; color: var(--accent); font-family: var(--mono); }
+  .result dl { margin: 0 0 14px; display: grid; grid-template-columns: max-content 1fr; gap: 0 18px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 14px; }
+  .result dt, .result dd { padding: 8px 0; border-bottom: 1px solid var(--line); margin: 0; font-family: var(--mono); font-size: .88rem; }
+  .result dt:nth-last-of-type(1), .result dd:last-child { border-bottom: 0; }
+  .result dt { color: var(--muted); }
+  .result dd { color: var(--text); font-weight: 600; }
+  .next { background: var(--accent-dim); border: 1px solid rgba(46, 230, 208, .35); padding: 12px 14px; border-radius: 8px; }
+  .delay { margin-top: 12px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line-hi); border-left: 3px solid var(--muted); font-size: .95rem; background: var(--s2); }
+  .delay[data-urgency="haute"] { border-left-color: var(--bad); }
+  .delay[data-urgency="moyenne"] { border-left-color: var(--warn); }
+  .delay[data-urgency="basse"] { border-left-color: var(--ok); }
+
+  /* Sections */
+  section.block { padding: 52px 0; border-top: 1px solid var(--line); }
+  .block > .wrap { display: grid; gap: 26px; }
+  .block h2 { font-size: clamp(1.5rem, 4.5vw, 2rem); }
+  .block h2::before { content: "//\00a0"; color: var(--accent); font-family: var(--mono); font-weight: 700; }
+  .block .intro p { margin-top: 10px; color: var(--muted); max-width: 38ch; }
+
+  /* Modules */
+  .modules { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .modules li {
+    display: grid; gap: 4px 24px; padding: 16px 18px; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r);
+    transition: border-color var(--t), box-shadow var(--t);
+  }
+  .modules li:hover { border-color: var(--accent); box-shadow: 0 0 16px rgba(46, 230, 208, .12); }
+  .modules h3 { font-size: 1.1rem; }
+  .modules p { color: var(--muted); max-width: 56ch; }
+
+  /* Equipment cards */
+  .tags { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .tag {
+    position: relative; background: var(--s1); border: 1px dashed var(--line-hi); border-radius: var(--r);
+    padding: 16px; display: flex; flex-direction: column;
+    transition: border-color var(--t), box-shadow var(--t), background var(--t);
+  }
+  .tag:hover { border-color: var(--accent); border-style: solid; box-shadow: 0 0 16px rgba(46, 230, 208, .12); background: var(--s2); }
+  .tag .state { align-self: flex-start; font-family: var(--mono); font-size: .75rem; color: var(--muted); border: 1px solid var(--line-hi); background: var(--bg); padding: 2px 8px; border-radius: 6px; }
+  .tag h3 { font-size: 1.1rem; margin-top: 12px; }
+  .tag .todo { color: var(--muted); font-size: .9rem; margin-top: 2px; }
+  .tag dl { margin: 12px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 0 14px; font-size: .85rem; font-family: var(--mono); }
+  .tag dt, .tag dd { margin: 0; padding: 6px 0; border-top: 1px solid var(--line); }
+  .tag dt { color: var(--muted); }
+  .tag dd { color: var(--text); }
+  .tag .code { display: none; }
+
+  /* Support */
+  .support-form { background: var(--s1); border: 1px solid var(--line); border-radius: 12px; padding: 20px 16px; transition: border-color var(--t); }
+  .support-form:focus-within { border-color: var(--line-hi); }
+  .note { font-size: .85rem; color: var(--muted); margin-top: 12px; font-family: var(--mono); }
+  .success { margin-top: 14px; padding: 12px 14px; background: rgba(61, 220, 132, .1); border: 1px solid rgba(61, 220, 132, .45); border-left-width: 3px; border-radius: 8px; color: var(--text); }
+
+  footer { border-top: 1px solid var(--line); background: var(--s1); padding: 20px 0 28px; color: var(--muted); font-size: .85rem; font-family: var(--mono); }
+
+  @media (min-width: 760px) {
+    .wrap { padding: 0 32px; }
+    .panel { padding: 62px 28px 28px; }
+    .hero { padding: 64px 0 80px; }
+    .hero .wrap { grid-template-columns: 5fr 7fr; gap: 56px; align-items: start; }
+    .block > .wrap { grid-template-columns: 4fr 8fr; gap: 56px; }
+    .block > .wrap.full { grid-template-columns: 1fr; }
+    .modules li { grid-template-columns: 200px 1fr; align-items: baseline; }
+    .support-form { padding: 28px; }
+  }
+  @media (max-width: 400px) {
+    .actions .btn { flex: 1 1 100%; }
+    .steps li { font-size: .74rem; }
+    .brand span:not(.pulse) { display: none; }
+    .bar nav a { padding: 6px 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="brand"><span class="pulse" aria-hidden="true"></span><strong>IT Parc</strong><span>Le parc informatique, suivi de bout en bout</span></div>
+    <nav aria-label="Navigation principale">
+      <a href="#assistant">Assistant</a>
+      <a href="#modules">Modules</a>
+      <a href="#equipements">Équipements</a>
+      <a href="#support">Support</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- Assistant -->
+  <section class="hero" id="assistant" aria-labelledby="t-assistant">
+    <div class="wrap">
+      <div class="hero-copy">
+        <h1 id="t-assistant">Une demande de matériel, en trois questions</h1>
+        <p>Indiquez l'équipement, votre besoin et votre site. L'assistant vous dit quelle est la prochaine action à mener.</p>
+        <p class="small">Vos réponses restent dans votre navigateur.</p>
+      </div>
+
+      <div class="panel">
+        <ol class="steps" id="progress" aria-label="Progression">
+          <li data-n="1">Équipement</li>
+          <li data-n="2">Besoin</li>
+          <li data-n="3">Site et urgence</li>
+        </ol>
+
+        <div id="step1">
+          <fieldset>
+            <legend tabindex="-1">Quel type d'équipement est concerné ?</legend>
+            <div class="choices" data-group="type">
+              <button type="button" class="choice" data-value="Ordinateur" aria-pressed="false">Ordinateur</button>
+              <button type="button" class="choice" data-value="Imprimante" aria-pressed="false">Imprimante</button>
+              <button type="button" class="choice" data-value="Smartphone" aria-pressed="false">Smartphone</button>
+              <button type="button" class="choice" data-value="Réseau" aria-pressed="false">Équipement réseau</button>
+            </div>
+          </fieldset>
+          <div class="error" id="err1" role="alert"></div>
+          <div class="actions"><button type="button" class="btn" id="next1">Continuer</button></div>
+        </div>
+
+        <div id="step2" hidden>
+          <fieldset>
+            <legend tabindex="-1">Quel est votre besoin ?</legend>
+            <div class="choices" data-group="need">
+              <button type="button" class="choice" data-value="Nouvel équipement" aria-pressed="false">Nouvel équipement</button>
+              <button type="button" class="choice" data-value="Panne" aria-pressed="false">Panne</button>
+              <button type="button" class="choice" data-value="Réaffectation" aria-pressed="false">Réaffectation</button>
+              <button type="button" class="choice" data-value="Restitution" aria-pressed="false">Restitution</button>
+            </div>
+          </fieldset>
+          <div class="error" id="err2" role="alert"></div>
+          <div class="actions">
+            <button type="button" class="btn ghost" id="back2">Retour</button>
+            <button type="button" class="btn" id="next2">Continuer</button>
+          </div>
+        </div>
+
+        <div id="step3" hidden>
+          <fieldset>
+            <legend tabindex="-1">Où et avec quelle urgence ?</legend>
+            <div class="field">
+              <label for="site">Site</label>
+              <select id="site">
+                <option value="">Choisir un site</option>
+                <option>Bureau national (Dakar)</option>
+                <option>Bureau régional [Site à compléter]</option>
+                <option>Autre [Site à compléter]</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="urgency">Urgence</label>
+              <select id="urgency">
+                <option value="">Choisir un niveau</option>
+                <option value="haute">Haute : le travail est bloqué</option>
+                <option value="moyenne">Moyenne : gêne importante</option>
+                <option value="basse">Basse : peut attendre</option>
+              </select>
+            </div>
+          </fieldset>
+          <div class="error" id="err3" role="alert"></div>
+          <div class="actions">
+            <button type="button" class="btn ghost" id="back3">Retour</button>
+            <button type="button" class="btn" id="finish">Voir la recommandation</button>
+          </div>
+        </div>
+
+        <div id="result" class="result" hidden aria-live="polite" tabindex="-1">
+          <h3>Action recommandée</h3>
+          <dl id="summary"></dl>
+          <p class="next" id="nextAction"></p>
+          <p class="delay" id="delay"></p>
+          <div class="actions">
+            <a class="btn" href="#support">Ouvrir une demande au support</a>
+            <button type="button" class="btn ghost" id="restart">Recommencer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modules -->
+  <section class="block" id="modules" aria-labelledby="t-modules">
+    <div class="wrap">
+      <div class="intro">
+        <h2 id="t-modules">Quatre modules</h2>
+        <p>Ils couvrent la vie du matériel, de son arrivée à sa restitution.</p>
+      </div>
+      <ul class="modules">
+        <li><h3>Inventaire</h3><p>Recenser ordinateurs, imprimantes HP et Bixolon, smartphones et équipements réseau.</p></li>
+        <li><h3>Affectations</h3><p>Savoir qui utilise quoi, et suivre les mouvements entre bureaux.</p></li>
+        <li><h3>Maintenance</h3><p>Déclarer les pannes, suivre les interventions et les réparations.</p></li>
+        <li><h3>Licences</h3><p>Suivre les licences logicielles et leurs échéances.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Équipements -->
+  <section class="block" id="equipements" aria-labelledby="t-equip">
+    <div class="wrap full">
+      <div class="intro">
+        <h2 id="t-equip">Équipements</h2>
+        <p>Chaque équipement aura son étiquette. Celles-ci sont des espaces réservés, sans donnée réelle.</p>
+      </div>
+      <div class="tags">
+        <article class="tag"><span class="state">Espace réservé</span><h3>Ordinateur</h3><p class="todo">[Équipement à venir]</p><dl><dt>N° de série</dt><dd>[À compléter]</dd><dt>Site</dt><dd>[Site à compléter]</dd><dt>Statut</dt><dd>[À compléter]</dd></dl><div class="code" aria-hidden="true"></div></article>
+        <article class="tag"><span class="state">Espace réservé</span><h3>Imprimante HP</h3><p class="todo">[Équipement à venir]</p><dl><dt>N° de série</dt><dd>[À compléter]</dd><dt>Site</dt><dd>[Site à compléter]</dd><dt>Statut</dt><dd>[À compléter]</dd></dl><div class="code" aria-hidden="true"></div></article>
+        <article class="tag"><span class="state">Espace réservé</span><h3>Imprimante Bixolon</h3><p class="todo">[Équipement à venir]</p><dl><dt>N° de série</dt><dd>[À compléter]</dd><dt>Site</dt><dd>[Site à compléter]</dd><dt>Statut</dt><dd>[À compléter]</dd></dl><div class="code" aria-hidden="true"></div></article>
+        <article class="tag"><span class="state">Espace réservé</span><h3>Smartphone</h3><p class="todo">[Équipement à venir]</p><dl><dt>N° de série</dt><dd>[À compléter]</dd><dt>Site</dt><dd>[Site à compléter]</dd><dt>Statut</dt><dd>[À compléter]</dd></dl><div class="code" aria-hidden="true"></div></article>
+        <article class="tag"><span class="state">Espace réservé</span><h3>Équipement réseau</h3><p class="todo">[Équipement à venir]</p><dl><dt>N° de série</dt><dd>[À compléter]</dd><dt>Site</dt><dd>[Site à compléter]</dd><dt>Statut</dt><dd>[À compléter]</dd></dl><div class="code" aria-hidden="true"></div></article>
+        <article class="tag"><span class="state">Espace réservé</span><h3>Autre matériel</h3><p class="todo">[Équipement à venir]</p><dl><dt>N° de série</dt><dd>[À compléter]</dd><dt>Site</dt><dd>[Site à compléter]</dd><dt>Statut</dt><dd>[À compléter]</dd></dl><div class="code" aria-hidden="true"></div></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Support -->
+  <section class="block" id="support" aria-labelledby="t-support">
+    <div class="wrap">
+      <div class="intro">
+        <h2 id="t-support">Écrire au support informatique</h2>
+        <p>Décrivez votre demande. Le formulaire est vérifié dans votre navigateur et rien n'est envoyé.</p>
+      </div>
+      <form class="support-form" id="helpdesk" novalidate>
+        <div class="field">
+          <label for="name">Nom complet</label>
+          <input id="name" name="name" type="text" autocomplete="name">
+          <div class="error" id="e-name"></div>
+        </div>
+        <div class="field">
+          <label for="email">Adresse e-mail</label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email">
+          <div class="error" id="e-email"></div>
+        </div>
+        <div class="field">
+          <label for="office">Bureau ou site</label>
+          <select id="office" name="office">
+            <option value="">Choisir un site</option>
+            <option>Bureau national (Dakar)</option>
+            <option>Bureau régional [Site à compléter]</option>
+            <option>Autre [Site à compléter]</option>
+          </select>
+          <div class="error" id="e-office"></div>
+        </div>
+        <div class="field">
+          <label for="message">Message</label>
+          <textarea id="message" name="message"></textarea>
+          <div class="error" id="e-message"></div>
+        </div>
+        <button type="submit" class="btn">Envoyer la demande</button>
+        <p class="note">Démonstration : aucune donnée n'est transmise ni enregistrée.</p>
+        <div class="success" id="formOk" role="status" hidden>Formulaire valide. Cette version est une maquette : rien n'a été envoyé.</div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">IT Parc, outil interne de gestion du parc informatique. Les contenus entre crochets restent à compléter.</div>
+</footer>
+
+<script>
+(function () {
+  var state = { type: "", need: "", site: "", urgency: "" };
+  var steps = [document.getElementById("step1"), document.getElementById("step2"), document.getElementById("step3")];
+  var crumbs = document.querySelectorAll("#progress li");
+  var result = document.getElementById("result");
+
+  function show(n, moveFocus) { // n: 0..2, or 3 = result
+    steps.forEach(function (s, i) { s.hidden = i !== n; });
+    result.hidden = n !== 3;
+    crumbs.forEach(function (c, i) {
+      c.classList.toggle("active", i === n);
+      c.classList.toggle("done", i < n || n === 3);
+      if (i === n) c.setAttribute("aria-current", "step"); else c.removeAttribute("aria-current");
+    });
+    if (n === 3) result.focus();
+    else if (moveFocus) steps[n].querySelector("legend").focus();
+  }
+
+  document.querySelectorAll(".choices").forEach(function (group) {
+    group.addEventListener("click", function (e) {
+      var b = e.target.closest(".choice");
+      if (!b) return;
+      group.querySelectorAll(".choice").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+      b.setAttribute("aria-pressed", "true");
+      state[group.dataset.group] = b.dataset.value;
+      document.getElementById(group.dataset.group === "type" ? "err1" : "err2").textContent = "";
+    });
+  });
+
+  document.getElementById("next1").onclick = function () {
+    if (!state.type) { document.getElementById("err1").textContent = "Choisissez un type d'équipement pour continuer."; return; }
+    show(1, true);
+  };
+  document.getElementById("back2").onclick = function () { show(0, true); };
+  document.getElementById("next2").onclick = function () {
+    if (!state.need) { document.getElementById("err2").textContent = "Choisissez un besoin pour continuer."; return; }
+    show(2, true);
+  };
+  document.getElementById("back3").onclick = function () { show(1, true); };
+
+  var actions = {
+    "Nouvel équipement": "Soumettre une demande d'équipement avec la validation de votre responsable, puis préciser l'usage prévu. L'équipe IT vérifie le stock disponible avant tout achat.",
+    "Panne": "Décrire la panne (message d'erreur, depuis quand) via le formulaire de support ci-dessous. L'équipe IT fait un premier diagnostic, à distance si possible, sinon une intervention est planifiée.",
+    "Réaffectation": "Indiquer l'utilisateur actuel et le futur utilisateur dans une demande de support. L'équipe IT sauvegarde et réinitialise l'appareil, puis met à jour l'affectation.",
+    "Restitution": "Signaler la restitution dans une demande de support. Remettre l'équipement avec ses accessoires à l'équipe IT, qui contrôle son état et met à jour l'inventaire."
+  };
+  var typeHint = {
+    "Ordinateur": "Pensez à sauvegarder vos données avant toute intervention.",
+    "Imprimante": "Précisez la marque (HP ou Bixolon) et le modèle affiché sur l'appareil.",
+    "Smartphone": "Pensez à déconnecter vos comptes personnels et professionnels si l'appareil change de main.",
+    "Réseau": "Indiquez quels utilisateurs ou services sont touchés."
+  };
+  var delays = {
+    haute: "Urgence haute : contactez aussi directement l'équipe IT en plus de la demande écrite.",
+    moyenne: "Urgence moyenne : la demande est traitée en priorité normale.",
+    basse: "Urgence basse : la demande est traitée après les cas urgents."
+  };
+
+  document.getElementById("finish").onclick = function () {
+    var site = document.getElementById("site").value;
+    var urg = document.getElementById("urgency").value;
+    var err = document.getElementById("err3");
+    if (!site || !urg) { err.textContent = "Choisissez un site et un niveau d'urgence pour continuer."; return; }
+    err.textContent = "";
+    state.site = site; state.urgency = urg;
+    var s = document.getElementById("summary");
+    s.innerHTML = "";
+    [["Équipement", state.type === "Réseau" ? "Équipement réseau" : state.type], ["Besoin", state.need], ["Site", site],
+     ["Urgence", { haute: "Haute", moyenne: "Moyenne", basse: "Basse" }[urg]]].forEach(function (p) {
+      var dt = document.createElement("dt"), dd = document.createElement("dd");
+      dt.textContent = p[0]; dd.textContent = p[1];
+      s.appendChild(dt); s.appendChild(dd);
+    });
+    document.getElementById("nextAction").textContent = actions[state.need] + " " + typeHint[state.type];
+    document.getElementById("delay").textContent = delays[urg];
+    document.getElementById("delay").dataset.urgency = urg;
+    show(3);
+  };
+
+  document.getElementById("restart").onclick = function () {
+    state = { type: "", need: "", site: "", urgency: "" };
+    document.querySelectorAll(".choice").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+    document.getElementById("site").value = "";
+    document.getElementById("urgency").value = "";
+    show(0, true);
+  };
+  show(0, false);
+
+  // Formulaire : validation locale uniquement, aucun envoi.
+  var form = document.getElementById("helpdesk");
+  var rules = {
+    name: function (v) { return v.trim().length >= 2 ? "" : "Saisissez votre nom."; },
+    email: function (v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? "" : "Saisissez une adresse e-mail valide, par exemple nom@organisation.org."; },
+    office: function (v) { return v ? "" : "Choisissez votre bureau ou site."; },
+    message: function (v) { return v.trim().length >= 10 ? "" : "Écrivez au moins 10 caractères pour décrire votre demande."; }
+  };
+  function check(id) {
+    var el = document.getElementById(id), msg = rules[id](el.value);
+    document.getElementById("e-" + id).textContent = msg;
+    el.parentNode.classList.toggle("invalid", !!msg);
+    if (msg) el.setAttribute("aria-invalid", "true"); else el.removeAttribute("aria-invalid");
+    return !msg;
+  }
+  Object.keys(rules).forEach(function (id) {
+    document.getElementById(id).addEventListener("blur", function () { check(id); });
+  });
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var ok = true, first = null;
+    Object.keys(rules).forEach(function (id) {
+      if (!check(id)) { ok = false; if (!first) first = id; }
+    });
+    var okBox = document.getElementById("formOk");
+    okBox.hidden = !ok;
+    if (ok) form.reset(); else document.getElementById(first).focus();
+  });
+})();
+</script>
+</body>
+</html>
